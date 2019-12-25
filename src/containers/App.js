@@ -6,29 +6,38 @@ import Scroll from '../components/Scroll'
 import Status from '../components/Status'
 import ErrorBoundry from '../components/ErrorBoundry'
 
+import { setSearchField, requestRobots } from '../actions';
+import { connect } from 'react-redux'
+
+const mapStateToProps = state =>{
+    return {
+        searchField: state.searchRobots.searchField,
+        robots: state.requestRobots.robots,
+        isPending: state.requestRobots.isPending,
+        error: state.requestRobots.error
+
+    }
+}
+
+const mapDispatchToProps = (dispatch) => {
+    return{
+        onSearchChange: (event) => dispatch(setSearchField(event.target.value)),
+        onRequestRobots: () => dispatch(requestRobots())
+    }
+}
+
 class App extends Component{
 
     constructor(){
         super();
         this.state = {
-            robots: [],
-            searchfield: '',
             robotremove: [],
             robothover:'Click on any robot to delete it'
         }
     }
 
     componentDidMount(){
-        fetch('https://jsonplaceholder.typicode.com/users')
-        .then(response=> response.json())
-        .then(users => {this.setState({robots:users})});
-
-    }
-
-    onSearchChange = (event) =>{
-        this.setState({
-            searchfield: event.target.value
-        })
+        this.props.onRequestRobots();
     }
 
     onCardHover = (event) =>{
@@ -57,17 +66,23 @@ class App extends Component{
     }
 
     render(){
-        const {robots, searchfield, robotremove, robothover} = this.state;
-        const filteredRobots = robots.filter((robot) => {
-            return (robot.name.toLowerCase().includes(searchfield.toLowerCase()) && !(robotremove.includes(robot.name)))
-        })
-       return !robots.length?
+        const {robotremove, robothover} = this.state;
+        const { searchField, onSearchChange, robots, isPending } = this.props;
+        
+        let filteredRobots
+        Array.isArray(robots) ?
+            filteredRobots = robots.filter((robot) => {
+                return (robot.name.toLowerCase().includes(searchField.toLowerCase()) && !(robotremove.includes(robot.name)))
+            })
+            :
+            filteredRobots = []
+       return isPending?
         <h1 className='f1'>LOADING</h1>:
         (
             <div className='tc'>
                 <h1 className='f1'>Robofriends</h1>
                 <Status text={robothover}/>
-                <SearchBox searchChange={this.onSearchChange}/>
+                <SearchBox searchChange={onSearchChange}/>
                 <Scroll>
                     <ErrorBoundry>
                         <CardList robots = {filteredRobots} onClick={this.onCardClick} onHover={this.onCardHover} onExit={this.onCardExit}/>
@@ -84,4 +99,4 @@ class App extends Component{
     }
     
 }
-export default App;
+export default connect(mapStateToProps, mapDispatchToProps)(App);
